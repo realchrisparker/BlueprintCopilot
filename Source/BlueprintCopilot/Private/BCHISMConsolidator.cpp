@@ -5,7 +5,9 @@
 #include "Editor.h"
 #include "Engine/Selection.h"
 #include "Engine/StaticMeshActor.h"
+#include "Engine/DecalActor.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/DecalComponent.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
@@ -34,7 +36,7 @@ bool FBCHISMConsolidator::CanExecute()
 	USelection* Selection = GEditor->GetSelectedActors();
 	for (FSelectionIterator It(*Selection); It; ++It)
 	{
-		if (Cast<AStaticMeshActor>(*It))
+		if (Cast<AStaticMeshActor>(*It) || Cast<ADecalActor>(*It))
 		{
 			return true;
 		}
@@ -49,9 +51,10 @@ void FBCHISMConsolidator::Execute()
 		return;
 	}
 
-	// ---- 1. Gather selected AStaticMeshActors ----------------------------------
+	// ---- 1. Gather selected AStaticMeshActors and ADecalActors -----------------
 
 	TArray<AStaticMeshActor*> MeshActors;
+	TArray<ADecalActor*>      DecalActors;
 	USelection* Selection = GEditor->GetSelectedActors();
 	for (FSelectionIterator It(*Selection); It; ++It)
 	{
@@ -59,12 +62,16 @@ void FBCHISMConsolidator::Execute()
 		{
 			MeshActors.Add(MeshActor);
 		}
+		else if (ADecalActor* DecalActor = Cast<ADecalActor>(*It))
+		{
+			DecalActors.Add(DecalActor);
+		}
 	}
 
-	if (MeshActors.Num() == 0)
+	if (MeshActors.Num() == 0 && DecalActors.Num() == 0)
 	{
 		FMessageDialog::Open(EAppMsgType::Ok,
-			LOCTEXT("NoMeshActors", "No Static Mesh Actors are selected.\nSelect one or more AStaticMeshActor instances and try again."));
+			LOCTEXT("NoActors", "No Static Mesh Actors or Decal Actors are selected.\nSelect at least one and try again."));
 		return;
 	}
 
@@ -87,7 +94,11 @@ void FBCHISMConsolidator::Execute()
 	{
 		Centroid += Actor->GetActorLocation();
 	}
-	Centroid /= static_cast<double>(MeshActors.Num());
+	for (const ADecalActor* Actor : DecalActors)
+	{
+		Centroid += Actor->GetActorLocation();
+	}
+	Centroid /= static_cast<double>(MeshActors.Num() + DecalActors.Num());
 
 	// ---- 4. Ask the user where to save the Blueprint ---------------------------
 
@@ -218,7 +229,34 @@ void FBCHISMConsolidator::Execute()
 		}
 	}
 
-	// ---- 7. Compile and register with the asset registry ----------------------
+	// ---- 7. Add one UDecalComponent per source decal actor --------------------
+	// Decals have no instanced equivalent so each always gets its own component.
+
+	for (int32 i = 0; i < DecalActors.Num(); ++i)
+	{
+		ADecalActor* DecalActor = DecalActors[i];
+		UDecalComponent* SourceDecal = DecalActor->GetDecal();
+		if (!SourceDecal)
+		{
+			continue;
+		}
+
+		const FName VarName = FName(*FString::Printf(TEXT("DecalComp%d"), i));
+		USCS_Node* NewNode = SCS->CreateNode(UDecalComponent::StaticClass(), VarName);
+		UDecalComponent* NewDecal = CastChecked<UDecalComponent>(NewNode->ComponentTemplate);
+
+		NewDecal->SetDecalMaterial(SourceDecal->GetDecalMaterial());
+		NewDecal->DecalSize = SourceDecal->DecalSize;
+		NewDecal->SortOrder = SourceDecal->SortOrder;
+
+		const FTransform ActorXf    = DecalActor->GetActorTransform();
+		const FVector    RelLocation = ActorXf.GetLocation() - Centroid;
+		NewDecal->SetRelativeTransform(FTransform(ActorXf.GetRotation(), RelLocation, ActorXf.GetScale3D()));
+
+		RootNode->AddChildNode(NewNode);
+	}
+
+	// ---- 8. Compile and register with the asset registry ----------------------
 
 	FKismetEditorUtilities::CompileBlueprint(NewBP);
 
@@ -228,10 +266,11 @@ void FBCHISMConsolidator::Execute()
 	// ---- 8. Report success ----------------------------------------------------
 
 	FNotificationInfo Info(FText::Format(
-		LOCTEXT("SuccessFmt", "Blueprint '{0}' created from {1} actor(s) — {2} mesh type(s) as HISM. Use File > Save All to persist."),
+		LOCTEXT("SuccessFmt", "Blueprint '{0}' created — {1} mesh(es) ({2} as HISM), {3} decal(s). Use File > Save All to persist."),
 		FText::FromString(OutAssetName),
 		FText::AsNumber(MeshActors.Num()),
-		FText::AsNumber(HISMCount)));
+		FText::AsNumber(HISMCount),
+		FText::AsNumber(DecalActors.Num())));
 	Info.ExpireDuration = 15.0f;
 	Info.bFireAndForget = true;
 	Info.bUseSuccessFailIcons = true;

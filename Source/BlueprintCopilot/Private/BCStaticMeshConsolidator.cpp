@@ -5,7 +5,9 @@
 #include "Editor.h"
 #include "Engine/Selection.h"
 #include "Engine/StaticMeshActor.h"
+#include "Engine/DecalActor.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/DecalComponent.h"
 #include "Engine/SimpleConstructionScript.h"
 #include "Engine/SCS_Node.h"
 #include "Engine/Blueprint.h"
@@ -33,7 +35,7 @@ bool FBCStaticMeshConsolidator::CanExecute()
 	USelection* Selection = GEditor->GetSelectedActors();
 	for (FSelectionIterator It(*Selection); It; ++It)
 	{
-		if (Cast<AStaticMeshActor>(*It))
+		if (Cast<AStaticMeshActor>(*It) || Cast<ADecalActor>(*It))
 		{
 			return true;
 		}
@@ -48,9 +50,10 @@ void FBCStaticMeshConsolidator::Execute()
 		return;
 	}
 
-	// ---- 1. Gather selected AStaticMeshActors ----------------------------------
+	// ---- 1. Gather selected AStaticMeshActors and ADecalActors -----------------
 
 	TArray<AStaticMeshActor*> MeshActors;
+	TArray<ADecalActor*>      DecalActors;
 	USelection* Selection = GEditor->GetSelectedActors();
 	for (FSelectionIterator It(*Selection); It; ++It)
 	{
@@ -58,12 +61,16 @@ void FBCStaticMeshConsolidator::Execute()
 		{
 			MeshActors.Add(MeshActor);
 		}
+		else if (ADecalActor* DecalActor = Cast<ADecalActor>(*It))
+		{
+			DecalActors.Add(DecalActor);
+		}
 	}
 
-	if (MeshActors.Num() == 0)
+	if (MeshActors.Num() == 0 && DecalActors.Num() == 0)
 	{
 		FMessageDialog::Open(EAppMsgType::Ok,
-			LOCTEXT("NoMeshActors", "No Static Mesh Actors are selected.\nSelect one or more AStaticMeshActor instances and try again."));
+			LOCTEXT("NoActors", "No Static Mesh Actors or Decal Actors are selected.\nSelect at least one and try again."));
 		return;
 	}
 
@@ -74,7 +81,11 @@ void FBCStaticMeshConsolidator::Execute()
 	{
 		Centroid += Actor->GetActorLocation();
 	}
-	Centroid /= static_cast<double>(MeshActors.Num());
+	for (const ADecalActor* Actor : DecalActors)
+	{
+		Centroid += Actor->GetActorLocation();
+	}
+	Centroid /= static_cast<double>(MeshActors.Num() + DecalActors.Num());
 
 	// ---- 3. Ask the user where to save the Blueprint ---------------------------
 
@@ -166,7 +177,33 @@ void FBCStaticMeshConsolidator::Execute()
 		RootNode->AddChildNode(NewNode);
 	}
 
-	// ---- 6. Compile and register with the asset registry ----------------------
+	// ---- 6. Add one UDecalComponent per source decal actor --------------------
+
+	for (int32 i = 0; i < DecalActors.Num(); ++i)
+	{
+		ADecalActor* DecalActor = DecalActors[i];
+		UDecalComponent* SourceDecal = DecalActor->GetDecal();
+		if (!SourceDecal)
+		{
+			continue;
+		}
+
+		const FName VarName = FName(*FString::Printf(TEXT("DecalComp%d"), i));
+		USCS_Node* NewNode = SCS->CreateNode(UDecalComponent::StaticClass(), VarName);
+		UDecalComponent* NewDecal = CastChecked<UDecalComponent>(NewNode->ComponentTemplate);
+
+		NewDecal->SetDecalMaterial(SourceDecal->GetDecalMaterial());
+		NewDecal->DecalSize = SourceDecal->DecalSize;
+		NewDecal->SortOrder = SourceDecal->SortOrder;
+
+		const FTransform ActorXf    = DecalActor->GetActorTransform();
+		const FVector    RelLocation = ActorXf.GetLocation() - Centroid;
+		NewDecal->SetRelativeTransform(FTransform(ActorXf.GetRotation(), RelLocation, ActorXf.GetScale3D()));
+
+		RootNode->AddChildNode(NewNode);
+	}
+
+	// ---- 7. Compile and register with the asset registry ----------------------
 
 	FKismetEditorUtilities::CompileBlueprint(NewBP);
 
@@ -176,9 +213,10 @@ void FBCStaticMeshConsolidator::Execute()
 	// ---- 7. Report success ----------------------------------------------------
 
 	FNotificationInfo Info(FText::Format(
-		LOCTEXT("SuccessFmt", "Blueprint '{0}' created from {1} mesh actor(s). Use File > Save All to persist."),
+		LOCTEXT("SuccessFmt", "Blueprint '{0}' created — {1} mesh(es), {2} decal(s). Use File > Save All to persist."),
 		FText::FromString(OutAssetName),
-		FText::AsNumber(MeshActors.Num())));
+		FText::AsNumber(MeshActors.Num()),
+		FText::AsNumber(DecalActors.Num())));
 	Info.ExpireDuration = 15.0f;
 	Info.bFireAndForget = true;
 	Info.bUseSuccessFailIcons = true;
