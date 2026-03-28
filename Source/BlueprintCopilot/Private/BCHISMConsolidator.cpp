@@ -162,8 +162,29 @@ void FBCHISMConsolidator::Execute()
 		SCS->AddNode(RootNode);
 	}
 
-	int32 NodeIndex = 0;
 	int32 HISMCount = 0;
+
+	// Converts an actor's editor label to a unique, valid SCS variable name.
+	TSet<FName> UsedVarNames;
+	auto MakeSCSVarName = [&UsedVarNames](const FString& Label) -> FName
+	{
+		FString Sanitized;
+		for (TCHAR Ch : Label)
+		{
+			Sanitized += (FChar::IsAlnum(Ch) || Ch == TEXT('_')) ? Ch : TEXT('_');
+		}
+		if (Sanitized.IsEmpty() || FChar::IsDigit(Sanitized[0]))
+		{
+			Sanitized.InsertAt(0, TEXT('_'));
+		}
+		FString Unique = Sanitized;
+		for (int32 N = 1; UsedVarNames.Contains(FName(*Unique)); ++N)
+		{
+			Unique = FString::Printf(TEXT("%s_%d"), *Sanitized, N);
+		}
+		UsedVarNames.Add(FName(*Unique));
+		return FName(*Unique);
+	};
 
 	for (auto& Pair : MeshGroups)
 	{
@@ -209,7 +230,7 @@ void FBCHISMConsolidator::Execute()
 					continue;
 				}
 
-				const FName VarName = FName(*FString::Printf(TEXT("StaticMeshComp%d"), NodeIndex));
+				const FName VarName = MakeSCSVarName(Actor->GetActorLabel());
 				USCS_Node* NewNode = SCS->CreateNode(UStaticMeshComponent::StaticClass(), VarName);
 				UStaticMeshComponent* NewComp = CastChecked<UStaticMeshComponent>(NewNode->ComponentTemplate);
 
@@ -224,7 +245,6 @@ void FBCHISMConsolidator::Execute()
 				NewComp->SetRelativeTransform(FTransform(ActorXf.GetRotation(), RelLocation, ActorXf.GetScale3D()));
 
 				RootNode->AddChildNode(NewNode);
-				++NodeIndex;
 			}
 		}
 	}

@@ -16,7 +16,7 @@ Blueprint Copilot is an Unreal Engine editor plugin that automates the conversio
 ### Create Blueprint From Selected
 Consolidates any number of selected `AStaticMeshActor` and `ADecalActor` instances into a single Blueprint asset.
 
-- Each selected Static Mesh Actor becomes a `UStaticMeshComponent`, preserving its static mesh, materials, and transform.
+- Each selected Static Mesh Actor becomes a `UStaticMeshComponent`, preserving its static mesh, materials, transform, and editor label (used as the component variable name in the Blueprint).
 - Each selected Decal Actor becomes a `UDecalComponent`, preserving its decal material, decal size, and sort order.
 - All components are positioned relative to the centroid of the entire selection, so the Blueprint's root lands at the center of the group when placed back in the world.
 - A Content Browser save dialog lets you choose the destination folder and asset name before anything is created.
@@ -27,7 +27,7 @@ Consolidates any number of selected `AStaticMeshActor` and `ADecalActor` instanc
 The same workflow as above, but with an additional draw-call optimization pass for static meshes.
 
 - Static meshes that appear on **more than two** selected actors are grouped into a single `UHierarchicalInstancedStaticMeshComponent` (HISM), with each actor's transform added as an instance.
-- Static meshes used by only one or two actors are kept as individual `UStaticMeshComponent` nodes.
+- Static meshes used by only one or two actors are kept as individual `UStaticMeshComponent` nodes, each named after its source actor's editor label.
 - Decal Actors always produce individual `UDecalComponent` nodes — there is no instanced equivalent for decals.
 - The success notification reports mesh count, how many mesh types were promoted to HISM, and decal count.
 - All other behavior (save dialog, centroid positioning, auto-compile, toast notification) is identical to the standard command.
@@ -104,6 +104,7 @@ If the plugin does not load automatically, open the editor, go to **Edit > Plugi
 ## Notes
 
 - Generated Blueprints use `AActor` as their base class.
+- Individual `UStaticMeshComponent` variable names are derived from the actor's editor label. Spaces and invalid identifier characters are replaced with underscores. Duplicate names are disambiguated with a numeric suffix (e.g. `Rock_1`, `Rock_2`). HISM and decal component names are not affected.
 - The plugin is editor-only (`"Type": "Editor"`) and has no runtime cost.
 - If you cancel the save dialog, no asset is created.
 - Error conditions (no valid selection, package creation failure) are reported via a blocking dialog so they are not missed.
