@@ -4,7 +4,7 @@
 
 #include "Styling/SlateStyle.h"
 
-class FBlueprintCopilotStyle
+class FBlueprintForgeStyle
 {
 public:
 

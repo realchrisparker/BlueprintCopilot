@@ -5,15 +5,15 @@
 #include "CoreMinimal.h"
 
 /**
- * FBCHISMConsolidator
+ * FBFHISMConsolidator
  *
- * Like FBCStaticMeshConsolidator but optimized: selected AStaticMeshActors whose
+ * Like FBFStaticMeshConsolidator but optimized: selected AStaticMeshActors whose
  * static mesh appears more than twice are grouped into a single
  * UHierarchicalInstancedStaticMeshComponent.  Meshes used only once or twice keep
  * individual UStaticMeshComponents.  All components land in one Blueprint asset
  * positioned relative to the centroid of the selection.
  */
-class FBCHISMConsolidator
+class FBFHISMConsolidator
 {
 public:
 	/** Execute the optimized consolidation. Bound to "Create Blueprint From Selected Optimized". */

@@ -7,7 +7,7 @@
 class FToolBarBuilder;
 class FMenuBuilder;
 
-class FBlueprintCopilotModule : public IModuleInterface
+class FBlueprintForgeModule : public IModuleInterface
 {
 public:
 

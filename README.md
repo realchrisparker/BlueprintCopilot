@@ -1,4 +1,4 @@
-# Blueprint Copilot
+# Blueprint Forge
 
 **Created by God's Studio**
 Unreal Engine 5.7 — Editor Plugin
@@ -7,7 +7,7 @@ Unreal Engine 5.7 — Editor Plugin
 
 ## Overview
 
-Blueprint Copilot is an Unreal Engine editor plugin that automates the conversion of selected Static Mesh Actors and Decal Actors in the Level Editor into reusable Blueprint assets. It eliminates the manual work of setting up Blueprint component hierarchies by building them directly from your level selection — with an optional optimization pass that uses Hierarchical Instanced Static Mesh components to reduce draw calls.
+Blueprint Forge is an Unreal Engine editor plugin that automates the conversion of selected Static Mesh Actors and Decal Actors in the Level Editor into reusable Blueprint assets. It eliminates the manual work of setting up Blueprint component hierarchies by building them directly from your level selection — with an optional optimization pass that uses Hierarchical Instanced Static Mesh components to reduce draw calls.
 
 ---
 
@@ -33,7 +33,7 @@ The same workflow as above, but with an additional draw-call optimization pass f
 - All other behavior (save dialog, centroid positioning, auto-compile, toast notification) is identical to the standard command.
 
 ### Context Menu Integration
-Both commands appear in the **right-click context menu** of the Level Editor viewport under a **Blueprint Copilot** section, and are also available under **Tools > Blueprint Copilot** in the main menu bar. The commands are enabled when at least one `AStaticMeshActor` or `ADecalActor` is selected.
+Both commands appear in the **right-click context menu** of the Level Editor viewport under a **Blueprint Forge** section, and are also available under **Tools > Blueprint Forge** in the main menu bar. The commands are enabled when at least one `AStaticMeshActor` or `ADecalActor` is selected.
 
 ---
 
@@ -48,14 +48,14 @@ Both commands appear in the **right-click context menu** of the Level Editor vie
 
 ### 1. Copy the plugin into your project
 
-Copy the `BlueprintCopilot` folder into the `Plugins` directory at the root of your Unreal project. Create the `Plugins` folder if it does not exist.
+Copy the `BlueprintForge` folder into the `Plugins` directory at the root of your Unreal project. Create the `Plugins` folder if it does not exist.
 
 ```
 YourProject/
 ├── Content/
 ├── Source/
 ├── Plugins/
-│   └── BlueprintCopilot/   ← place the folder here
+│   └── BlueprintForge/   ← place the folder here
 └── YourProject.uproject
 ```
 
@@ -67,7 +67,7 @@ Open `YourProject.uproject` in a text editor and add the plugin entry to the `"P
 {
     "Plugins": [
         {
-            "Name": "BlueprintCopilot",
+            "Name": "BlueprintForge",
             "Enabled": true
         }
     ]
@@ -84,7 +84,7 @@ Open the solution in Visual Studio (or Rider) and build in **Development Editor*
 
 ### 5. Enable the plugin in the editor (if needed)
 
-If the plugin does not load automatically, open the editor, go to **Edit > Plugins**, search for **Blueprint Copilot**, and enable it. Restart the editor when prompted.
+If the plugin does not load automatically, open the editor, go to **Edit > Plugins**, search for **Blueprint Forge**, and enable it. Restart the editor when prompted.
 
 ---
 
@@ -92,7 +92,7 @@ If the plugin does not load automatically, open the editor, go to **Edit > Plugi
 
 1. Select any combination of **Static Mesh Actors** and **Decal Actors** in the Level Editor viewport.
 2. Right-click any selected actor to open the context menu.
-3. Under the **Blueprint Copilot** section, choose:
+3. Under the **Blueprint Forge** section, choose:
    - **Create Blueprint From Selected** — one component per actor, meshes as `UStaticMeshComponent`, decals as `UDecalComponent`.
    - **Create Blueprint From Selected Optimized** — same, but static meshes used more than twice are batched into a single `UHierarchicalInstancedStaticMeshComponent`.
 4. In the Content Browser save dialog, choose a destination folder and asset name, then click **Save**.

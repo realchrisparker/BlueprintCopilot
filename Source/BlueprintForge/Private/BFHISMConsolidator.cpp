@@ -1,6 +1,6 @@
 // Copyright God's Studio. All Rights Reserved.
 
-#include "BCHISMConsolidator.h"
+#include "BFHISMConsolidator.h"
 
 #include "Editor.h"
 #include "Engine/Selection.h"
@@ -24,9 +24,9 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
-#define LOCTEXT_NAMESPACE "FBCHISMConsolidator"
+#define LOCTEXT_NAMESPACE "FBFHISMConsolidator"
 
-bool FBCHISMConsolidator::CanExecute()
+bool FBFHISMConsolidator::CanExecute()
 {
 	if (!GEditor)
 	{
@@ -44,7 +44,7 @@ bool FBCHISMConsolidator::CanExecute()
 	return false;
 }
 
-void FBCHISMConsolidator::Execute()
+void FBFHISMConsolidator::Execute()
 {
 	if (!GEditor)
 	{

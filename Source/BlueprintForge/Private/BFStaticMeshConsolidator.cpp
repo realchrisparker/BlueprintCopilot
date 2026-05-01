@@ -1,6 +1,6 @@
 // Copyright God's Studio. All Rights Reserved.
 
-#include "BCStaticMeshConsolidator.h"
+#include "BFStaticMeshConsolidator.h"
 
 #include "Editor.h"
 #include "Engine/Selection.h"
@@ -23,9 +23,9 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
-#define LOCTEXT_NAMESPACE "FBCStaticMeshConsolidator"
+#define LOCTEXT_NAMESPACE "FBFStaticMeshConsolidator"
 
-bool FBCStaticMeshConsolidator::CanExecute()
+bool FBFStaticMeshConsolidator::CanExecute()
 {
 	if (!GEditor)
 	{
@@ -43,7 +43,7 @@ bool FBCStaticMeshConsolidator::CanExecute()
 	return false;
 }
 
-void FBCStaticMeshConsolidator::Execute()
+void FBFStaticMeshConsolidator::Execute()
 {
 	if (!GEditor)
 	{
